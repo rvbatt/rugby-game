@@ -1,5 +1,6 @@
 // Standard headers
 #include <stdio.h>
+#include <stdlib.h>
 
 // Internal headers
 #include "direction.h"
@@ -19,15 +20,26 @@
 enum DefenseState {START, ADVANCE, RETREAT, HOLD_GROUND, PATROL};
 static enum DefenseState state = START;
 
+static position_t previous_position;
+static direction_t current_direction;
+
 static size_t height_estimate; // Either height or (height - 1)
 static size_t width; // Exactly the field width
 
-static direction_t current_direction;
+static size_t rounds_stuck = 0;
+static size_t rotations_clockwise = 0;
+static size_t rotations_counterclockwise = 0;
 
 /*----------------------------------------------------------------------------*/
 /*                          PRIVATE FUNCTIONS HEADERS                         */
 /*----------------------------------------------------------------------------*/
+
 direction_t reverse_direction(direction_t current_direction);
+direction_t rotate_clockwise(direction_t direction, size_t rotations);
+direction_t rotate_counterclockwise(direction_t direction, size_t rotations);
+
+bool is_stuck(position_t current_position);
+direction_t execute_evasion_strategy();
 
 /*----------------------------------------------------------------------------*/
 /*                              PUBLIC FUNCTIONS                              */
@@ -35,6 +47,11 @@ direction_t reverse_direction(direction_t current_direction);
 
 direction_t execute_defender_strategy(
     position_t defender_position, Spy attacker_spy) {
+
+  /* Check if defender is stuck */
+  if (is_stuck(defender_position)) {
+    return execute_evasion_strategy();
+  }
 
   switch (state) {
     case START :
@@ -81,8 +98,8 @@ direction_t execute_defender_strategy(
        * start patrolling or hold your ground
        */
       if (defender_position.j == width - 3) {
-        if (current_direction.i == 0) {
-          current_direction = (direction_t) DIR_LEFT;
+        if (abs(current_direction.i) == height_estimate / 2) {
+          current_direction = (direction_t) DIR_STAY;
           state = HOLD_GROUND;
         }
         else {
@@ -92,14 +109,11 @@ direction_t execute_defender_strategy(
       }
       break;
 
-    case HOLD_GROUND :
-      /* Keep going back and forth */
-      current_direction = reverse_direction(current_direction);
-      break;
+    case HOLD_GROUND : break; /* Stay put */
 
     case PATROL : 
         /* Keep going up and down as much as you can */
-        if (defender_position.i <= 2 ||
+        if (defender_position.i == 1 ||
             defender_position.i >= height_estimate - 2)
         {
           current_direction = reverse_direction(current_direction);
@@ -107,6 +121,7 @@ direction_t execute_defender_strategy(
         break;
     }
 
+  previous_position = defender_position;
   return current_direction;
 }
 
@@ -116,6 +131,54 @@ direction_t execute_defender_strategy(
 
 direction_t reverse_direction(direction_t current_direction) {
   return (direction_t){- current_direction.i, - current_direction.j};
+}
+
+direction_t rotate_clockwise(direction_t direction, size_t rotations) {
+  direction_t d = direction;
+  for (size_t i = 0; i < rotations; i++) {
+    // f(i, j) = (i + j, -i + j)
+    d = (direction_t) {d.i + d.j, -d.i + d.j};
+  }
+  // Makes sure that the direction is unitary
+  if (d.i != 0) d.i = d.i / abs(d.i);
+  if (d.j != 0) d.j = d.j / abs(d.j);
+  return d;
+}
+
+direction_t rotate_counterclockwise(direction_t direction, size_t rotations) {
+  direction_t d = direction;
+  for (size_t i = 0; i < rotations; i++) {
+    // f(i, j) = (i - j, i + j)
+    d = (direction_t) {d.i - d.j, d.i + d.j};
+  }
+  // Makes sure that the direction is unitary
+  if (d.i != 0) d.i = d.i / abs(d.i);
+  if (d.j != 0) d.j = d.j / abs(d.j);
+  return d;
+}
+
+bool is_stuck(position_t current_position) {
+  if (equal_positions(current_position, previous_position)) {
+    rounds_stuck++;
+    return true;
+  }
+  else {
+    rounds_stuck = 0;
+    rotations_clockwise = 0;
+    rotations_counterclockwise = 0;
+    return false;
+  }
+}
+
+direction_t execute_evasion_strategy() {
+  if (rounds_stuck % 2 == 1) {
+    rotations_clockwise++;
+    return rotate_clockwise(current_direction, rotations_clockwise);
+  }
+  else {
+    rotations_counterclockwise++;
+    return rotate_counterclockwise(current_direction, rotations_counterclockwise);
+  }
 }
 
 /*----------------------------------------------------------------------------*/
