@@ -39,9 +39,9 @@ direction_t execute_attacker_strategy(
 
       // Randomly chooses between going UP or DOWN
       if (rand() <= RAND_MAX / 2)
-        current_direction = DIR_UP;
+        current_direction = (direction_t) DIR_UP;
       else
-        current_direction = DIR_DOWN;
+        current_direction = (direction_t) DIR_DOWN;
       
       state = DISTRACT;
       break;
@@ -49,12 +49,12 @@ direction_t execute_attacker_strategy(
     case DISTRACT :
       /* Keep going until you reach an edge of the field */
       if (attacker_position.i == 1) { // Top of the field
-        current_direction = DIR_DOWN_RIGHT;
+        current_direction = (direction_t) DIR_DOWN_RIGHT;
         state = GO_TO_CENTER;
       }
 
       if (attacker_position.i >= height_estimate - 2) { // Bottom of the field
-        current_direction = DIR_UP_RIGHT;
+        current_direction = (direction_t) DIR_UP_RIGHT;
         state = GO_TO_CENTER;
       }
       break;
@@ -68,14 +68,14 @@ direction_t execute_attacker_strategy(
           /* The attacker is below the defender in the field,
            * so the attacker will sprint to the bottom corner
            */
-          current_direction = DIR_DOWN_RIGHT;
+          current_direction = (direction_t) DIR_DOWN_RIGHT;
         }
 
         else if (attacker_position.i < defender_i_at_spy) {
           /* The attacker is above the defender in the field,
            * so the attacker will sprint to top corner
            */
-          current_direction = DIR_UP_RIGHT;
+          current_direction = (direction_t) DIR_UP_RIGHT;
         }
 
         state = SPRINT;
@@ -89,7 +89,7 @@ direction_t execute_attacker_strategy(
       if (attacker_position.i == 1 ||
           attacker_position.i >= height_estimate - 2)
       {
-        current_direction = DIR_RIGHT;
+        current_direction = (direction_t) DIR_RIGHT;
       }
       break;
   }

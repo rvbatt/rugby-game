@@ -41,7 +41,7 @@ direction_t execute_defender_strategy(
       height_estimate = defender_position.i * 2;
       width = defender_position.j + 2;
 
-      current_direction = DIR_LEFT;
+      current_direction = (direction_t) DIR_LEFT;
       state = ADVANCE;
       break;
 
@@ -54,21 +54,21 @@ direction_t execute_defender_strategy(
           /* The attacker is below the defender in the field,
            * so the defender will chase it that way
            */
-          current_direction = DIR_DOWN_RIGHT;
+          current_direction = (direction_t) DIR_DOWN_RIGHT;
         }
 
         else if (attacker_i_at_spy < defender_position.i) {
           /* The attacker is above the defender in the field,
            * so the defender will chase it that way
            */
-          current_direction = DIR_UP_RIGHT;
+          current_direction = (direction_t) DIR_UP_RIGHT;
         }
 
         else {
           /* The attacker is coming from the centre line,
            * so the defender will retreat in the same line
            */
-          current_direction = DIR_RIGHT;
+          current_direction = (direction_t) DIR_RIGHT;
         }
 
         state = RETREAT;
@@ -82,7 +82,7 @@ direction_t execute_defender_strategy(
        */
       if (defender_position.j == width - 3) {
         if (current_direction.i == 0) {
-          current_direction = DIR_LEFT;
+          current_direction = (direction_t) DIR_LEFT;
           state = HOLD_GROUND;
         }
         else {
