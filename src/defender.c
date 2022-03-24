@@ -34,12 +34,12 @@ static size_t rotations_counterclockwise = 0;
 /*                          PRIVATE FUNCTIONS HEADERS                         */
 /*----------------------------------------------------------------------------*/
 
-direction_t reverse_direction(direction_t current_direction);
-direction_t rotate_clockwise(direction_t direction, size_t rotations);
-direction_t rotate_counterclockwise(direction_t direction, size_t rotations);
+static direction_t reverse_direction(direction_t current_direction);
+static direction_t rotate_clockwise(direction_t direction, size_t rotations);
+static direction_t rotate_counterclockwise(direction_t direction, size_t rotations);
 
-bool is_stuck(position_t current_position);
-direction_t execute_evasion_strategy();
+static bool is_stuck(position_t current_position);
+static direction_t execute_evasion_strategy();
 
 /*----------------------------------------------------------------------------*/
 /*                              PUBLIC FUNCTIONS                              */

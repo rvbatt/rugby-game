@@ -21,9 +21,24 @@
 enum AttackState{START, DISTRACT, GO_TO_CENTER, SPRINT};
 static enum AttackState state = START;
 
+static position_t previous_position;
+static direction_t current_direction;
+
 static size_t height_estimate; // Either height or (height - 1)
 
-static direction_t current_direction;
+static size_t rounds_stuck = 0;
+static size_t rotations_clockwise = 0;
+static size_t rotations_counterclockwise = 0;
+
+/*----------------------------------------------------------------------------*/
+/*                          PRIVATE FUNCTIONS HEADERS                         */
+/*----------------------------------------------------------------------------*/
+
+static direction_t rotate_clockwise(direction_t direction, size_t rotations);
+static direction_t rotate_counterclockwise(direction_t direction, size_t rotations);
+
+static bool is_stuck(position_t current_position);
+static direction_t execute_evasion_strategy();
 
 /*----------------------------------------------------------------------------*/
 /*                              PUBLIC FUNCTIONS                              */
@@ -31,6 +46,11 @@ static direction_t current_direction;
 
 direction_t execute_attacker_strategy(
     position_t attacker_position, Spy defender_spy) {
+
+  /* Check if attacker is stuck */
+  if (is_stuck(attacker_position)) {
+    return execute_evasion_strategy();
+  }
 
   switch (state) {
     case START :
@@ -94,7 +114,56 @@ direction_t execute_attacker_strategy(
       break;
   }
 
+  previous_position = attacker_position;
   return current_direction;
+}
+
+direction_t rotate_clockwise(direction_t direction, size_t rotations) {
+  direction_t d = direction;
+  for (size_t i = 0; i < rotations; i++) {
+    // f(i, j) = (i + j, -i + j)
+    d = (direction_t) {d.i + d.j, -d.i + d.j};
+  }
+  // Makes sure that the direction is unitary
+  if (d.i != 0) d.i = d.i / abs(d.i);
+  if (d.j != 0) d.j = d.j / abs(d.j);
+  return d;
+}
+
+direction_t rotate_counterclockwise(direction_t direction, size_t rotations) {
+  direction_t d = direction;
+  for (size_t i = 0; i < rotations; i++) {
+    // f(i, j) = (i - j, i + j)
+    d = (direction_t) {d.i - d.j, d.i + d.j};
+  }
+  // Makes sure that the direction is unitary
+  if (d.i != 0) d.i = d.i / abs(d.i);
+  if (d.j != 0) d.j = d.j / abs(d.j);
+  return d;
+}
+
+bool is_stuck(position_t current_position) {
+  if (equal_positions(current_position, previous_position)) {
+    rounds_stuck++;
+    return true;
+  }
+  else {
+    rounds_stuck = 0;
+    rotations_clockwise = 0;
+    rotations_counterclockwise = 0;
+    return false;
+  }
+}
+
+direction_t execute_evasion_strategy() {
+  if (rounds_stuck % 2 == 1) {
+    rotations_clockwise++;
+    return rotate_clockwise(current_direction, rotations_clockwise);
+  }
+  else {
+    rotations_counterclockwise++;
+    return rotate_counterclockwise(current_direction, rotations_counterclockwise);
+  }
 }
 
 /*----------------------------------------------------------------------------*/
