@@ -34,12 +34,14 @@ static size_t rotations_counterclockwise = 0;
 /*                          PRIVATE FUNCTIONS HEADERS                         */
 /*----------------------------------------------------------------------------*/
 
-static direction_t reverse_direction(direction_t current_direction);
-static direction_t rotate_clockwise(direction_t direction, size_t rotations);
-static direction_t rotate_counterclockwise(direction_t direction, size_t rotations);
+static direction_t reverse_direction(direction_t direction);
+static direction_t rotate_clockwise(direction_t d, size_t rotations);
+static direction_t rotate_counterclockwise(direction_t d, size_t rotations);
 
 static bool is_stuck(position_t current_position);
-static direction_t execute_evasion_strategy();
+static direction_t obstacle_evasion_direction();
+static direction_t execute_detour_strategy();
+static void reset_stuck_data();
 
 /*----------------------------------------------------------------------------*/
 /*                              PUBLIC FUNCTIONS                              */
@@ -50,7 +52,13 @@ direction_t execute_defender_strategy(
 
   /* Check if defender is stuck */
   if (is_stuck(defender_position)) {
-    return execute_evasion_strategy();
+    return obstacle_evasion_direction();
+  }
+  else if (rounds_stuck >= 3) { // was stuck before
+    return execute_detour_strategy();
+  }
+  else {
+    reset_stuck_data();
   }
 
   switch (state) {
@@ -102,6 +110,7 @@ direction_t execute_defender_strategy(
           current_direction = (direction_t) DIR_STAY;
           state = HOLD_GROUND;
         }
+
         else {
           current_direction = (direction_t){current_direction.i, 0};
           state = PATROL;
@@ -162,23 +171,38 @@ bool is_stuck(position_t current_position) {
     rounds_stuck++;
     return true;
   }
-  else {
-    rounds_stuck = 0;
-    rotations_clockwise = 0;
-    rotations_counterclockwise = 0;
-    return false;
-  }
+  else return false;
 }
 
-direction_t execute_evasion_strategy() {
+direction_t obstacle_evasion_direction() {
   if (rounds_stuck % 2 == 1) {
     rotations_clockwise++;
     return rotate_clockwise(current_direction, rotations_clockwise);
   }
   else {
     rotations_counterclockwise++;
-    return rotate_counterclockwise(current_direction, rotations_counterclockwise);
+    return rotate_counterclockwise(current_direction,
+                                   rotations_counterclockwise);
   }
+}
+
+direction_t execute_detour_strategy() {
+  rounds_stuck -= 2;
+  if (rounds_stuck % 2 == 1) {
+    rotations_clockwise--;
+    return rotate_clockwise(current_direction, rotations_clockwise);
+  }
+  else {
+    rotations_counterclockwise--;
+    return rotate_counterclockwise(current_direction,
+                                   rotations_counterclockwise);
+  }
+}
+
+void reset_stuck_data() {
+  rounds_stuck = 0;
+  rotations_clockwise = 0;
+  rotations_counterclockwise = 0;
 }
 
 /*----------------------------------------------------------------------------*/
