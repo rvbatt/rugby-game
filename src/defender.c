@@ -34,7 +34,6 @@ static size_t rotations_counterclockwise = 0;
 /*                          PRIVATE FUNCTIONS HEADERS                         */
 /*----------------------------------------------------------------------------*/
 
-static direction_t reverse_direction(direction_t direction);
 static direction_t rotate_clockwise(direction_t d, size_t rotations);
 static direction_t rotate_counterclockwise(direction_t d, size_t rotations);
 
@@ -112,7 +111,7 @@ direction_t execute_defender_strategy(
         }
 
         else {
-          current_direction = (direction_t){current_direction.i, 0};
+          current_direction = (direction_t) {current_direction.i, 0};
           state = PATROL;
         }
       }
@@ -121,14 +120,15 @@ direction_t execute_defender_strategy(
     case HOLD_GROUND : break; /* Stay put */
 
     case PATROL : 
-        /* Keep going up and down as much as you can */
-        if (defender_position.i == 1 ||
-            defender_position.i >= height_estimate - 2)
-        {
-          current_direction = reverse_direction(current_direction);
-        }
-        break;
-    }
+      /* Keep going up and down as much as you can */
+      if (defender_position.i <= 2) {
+        current_direction = (direction_t) DIR_DOWN;
+      }
+      else if (defender_position.i >= height_estimate - 2) {
+        current_direction = (direction_t) DIR_UP;
+      }
+      break;
+  }
 
   previous_position = defender_position;
   return current_direction;
@@ -137,10 +137,6 @@ direction_t execute_defender_strategy(
 /*----------------------------------------------------------------------------*/
 /*                             PRIVATE FUNCTIONS                              */
 /*----------------------------------------------------------------------------*/
-
-direction_t reverse_direction(direction_t current_direction) {
-  return (direction_t){- current_direction.i, - current_direction.j};
-}
 
 direction_t rotate_clockwise(direction_t direction, size_t rotations) {
   direction_t d = direction;
