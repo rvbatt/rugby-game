@@ -18,8 +18,8 @@
 /*                         PRIVATE VARIABLES                                  */
 /*----------------------------------------------------------------------------*/
 
-enum AttackState{START, DISTRACT, GO_TO_CENTER, SPRINT};
-static enum AttackState state = START;
+enum Attack_state{START, DISTRACT, GO_TO_CENTER, SPRINT};
+static enum Attack_state state = START;
 
 static position_t previous_position;
 static direction_t current_direction;
@@ -37,7 +37,6 @@ static size_t rotations_counterclockwise = 0;
 static direction_t rotate_clockwise(direction_t direction, size_t rotations);
 static direction_t rotate_counterclockwise(direction_t direction, size_t rotations);
 
-static bool is_stuck(position_t current_position);
 static direction_t obstacle_evasion_direction();
 static direction_t execute_detour_strategy();
 static void reset_stuck_data();
@@ -50,10 +49,11 @@ direction_t execute_attacker_strategy(
     position_t attacker_position, Spy defender_spy) {
 
   /* Check if attacker is stuck */
-  if (is_stuck(attacker_position)) {
+  if (equal_positions(attacker_position, previous_position)) {
+    rounds_stuck++;
     return obstacle_evasion_direction();
   }
-  else if (rounds_stuck >= 3) { // was stuck before
+  else if (rounds_stuck >= 3) {
     return execute_detour_strategy();
   }
   else {
@@ -62,10 +62,10 @@ direction_t execute_attacker_strategy(
 
   switch (state) {
     case START :
-      srand((int) time(NULL)); // Randomizes seed
       height_estimate = attacker_position.i * 2;
 
       // Randomly chooses between going UP or DOWN
+      srand((int) time(NULL));
       if (rand() <= RAND_MAX / 2)
         current_direction = (direction_t) DIR_UP;
       else
@@ -75,34 +75,31 @@ direction_t execute_attacker_strategy(
       break;
 
     case DISTRACT :
-      /* Keep going until you reach an edge of the field */
+      /* Keep going UP or DOWN until you reach an edge of the field,
+       * then start moving to the center in a diagonal line
+       */
       if (attacker_position.i == 1) { // Top of the field
         current_direction = (direction_t) DIR_DOWN_RIGHT;
         state = GO_TO_CENTER;
       }
 
-      if (attacker_position.i >= height_estimate - 2) { // Bottom of the field
+      else if (attacker_position.i >= height_estimate - 2) { // Bottom of the field
         current_direction = (direction_t) DIR_UP_RIGHT;
         state = GO_TO_CENTER;
       }
       break;
 
     case GO_TO_CENTER :
-      /* Keep going until you are close to the center */
+      /* Keep going until you are close to the center, then Spy and
+       * start sprinting to the opposite side of the defender
+       */
       if (attacker_position.i == height_estimate / 2) {
         size_t defender_i_at_spy = get_spy_position(defender_spy).i;
 
         if (attacker_position.i > defender_i_at_spy) {
-          /* The attacker is below the defender in the field,
-           * so the attacker will sprint to the bottom corner
-           */
           current_direction = (direction_t) DIR_DOWN_RIGHT;
         }
-
-        else if (attacker_position.i < defender_i_at_spy) {
-          /* The attacker is above the defender in the field,
-           * so the attacker will sprint to top corner
-           */
+        else { // Defender is below or on the same height
           current_direction = (direction_t) DIR_UP_RIGHT;
         }
 
@@ -111,7 +108,7 @@ direction_t execute_attacker_strategy(
       break;
 
     case SPRINT :
-      /* Go to one of the corners.
+      /* Go to one of the far right corners.
        * If you reach a wall, just move straight ahead
        */
       if (attacker_position.i == 1 ||
@@ -120,6 +117,9 @@ direction_t execute_attacker_strategy(
         current_direction = (direction_t) DIR_RIGHT;
       }
       break;
+
+    default : // Invalid state. Restart strategy
+      state = START;
   }
 
   previous_position = attacker_position;
@@ -136,7 +136,7 @@ direction_t rotate_clockwise(direction_t direction, size_t rotations) {
     // f(i, j) = (i + j, -i + j)
     d = (direction_t) {d.i + d.j, -d.i + d.j};
   }
-  // Makes sure that the direction is unitary
+  // Fix norm increase in linear transformation
   if (d.i != 0) d.i = d.i / abs(d.i);
   if (d.j != 0) d.j = d.j / abs(d.j);
   return d;
@@ -148,43 +148,27 @@ direction_t rotate_counterclockwise(direction_t direction, size_t rotations) {
     // f(i, j) = (i - j, i + j)
     d = (direction_t) {d.i - d.j, d.i + d.j};
   }
-  // Makes sure that the direction is unitary
+  // Fix norm increase in linear transformation
   if (d.i != 0) d.i = d.i / abs(d.i);
   if (d.j != 0) d.j = d.j / abs(d.j);
   return d;
 }
 
-bool is_stuck(position_t current_position) {
-  if (equal_positions(current_position, previous_position)) {
-    rounds_stuck++;
-    return true;
-  }
-  else return false;
-}
-
 direction_t obstacle_evasion_direction() {
-  if (rounds_stuck % 2 == 1) {
-    rotations_clockwise++;
-    return rotate_clockwise(current_direction, rotations_clockwise);
-  }
-  else {
-    rotations_counterclockwise++;
+  if (rounds_stuck % 2 == 1)
+    return rotate_clockwise(current_direction, ++rotations_clockwise);
+  else
     return rotate_counterclockwise(current_direction,
-                                   rotations_counterclockwise);
-  }
+                                        ++rotations_counterclockwise);
 }
 
 direction_t execute_detour_strategy() {
   rounds_stuck -= 2;
-  if (rounds_stuck % 2 == 1) {
-    rotations_clockwise--;
-    return rotate_clockwise(current_direction, rotations_clockwise);
-  }
-  else {
-    rotations_counterclockwise--;
+  if (rounds_stuck % 2 == 1)
+    return rotate_clockwise(current_direction, --rotations_clockwise);
+  else
     return rotate_counterclockwise(current_direction,
-                                   rotations_counterclockwise);
-  }
+                                        --rotations_counterclockwise);
 }
 
 void reset_stuck_data() {
