@@ -38,7 +38,9 @@ static direction_t rotate_clockwise(direction_t direction, size_t rotations);
 static direction_t rotate_counterclockwise(direction_t direction, size_t rotations);
 
 static bool is_stuck(position_t current_position);
-static direction_t execute_evasion_strategy();
+static direction_t obstacle_evasion_direction();
+static direction_t execute_detour_strategy();
+static void reset_stuck_data();
 
 /*----------------------------------------------------------------------------*/
 /*                              PUBLIC FUNCTIONS                              */
@@ -49,7 +51,13 @@ direction_t execute_attacker_strategy(
 
   /* Check if attacker is stuck */
   if (is_stuck(attacker_position)) {
-    return execute_evasion_strategy();
+    return obstacle_evasion_direction();
+  }
+  else if (rounds_stuck >= 3) { // was stuck before
+    return execute_detour_strategy();
+  }
+  else {
+    reset_stuck_data();
   }
 
   switch (state) {
@@ -118,6 +126,10 @@ direction_t execute_attacker_strategy(
   return current_direction;
 }
 
+/*----------------------------------------------------------------------------*/
+/*                             PRIVATE FUNCTIONS                              */
+/*----------------------------------------------------------------------------*/
+
 direction_t rotate_clockwise(direction_t direction, size_t rotations) {
   direction_t d = direction;
   for (size_t i = 0; i < rotations; i++) {
@@ -147,23 +159,38 @@ bool is_stuck(position_t current_position) {
     rounds_stuck++;
     return true;
   }
-  else {
-    rounds_stuck = 0;
-    rotations_clockwise = 0;
-    rotations_counterclockwise = 0;
-    return false;
-  }
+  else return false;
 }
 
-direction_t execute_evasion_strategy() {
+direction_t obstacle_evasion_direction() {
   if (rounds_stuck % 2 == 1) {
     rotations_clockwise++;
     return rotate_clockwise(current_direction, rotations_clockwise);
   }
   else {
     rotations_counterclockwise++;
-    return rotate_counterclockwise(current_direction, rotations_counterclockwise);
+    return rotate_counterclockwise(current_direction,
+                                   rotations_counterclockwise);
   }
+}
+
+direction_t execute_detour_strategy() {
+  rounds_stuck -= 2;
+  if (rounds_stuck % 2 == 1) {
+    rotations_clockwise--;
+    return rotate_clockwise(current_direction, rotations_clockwise);
+  }
+  else {
+    rotations_counterclockwise--;
+    return rotate_counterclockwise(current_direction,
+                                   rotations_counterclockwise);
+  }
+}
+
+void reset_stuck_data() {
+  rounds_stuck = 0;
+  rotations_clockwise = 0;
+  rotations_counterclockwise = 0;
 }
 
 /*----------------------------------------------------------------------------*/
